@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FilmFeel — C: Safelight</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../../public/fonts/Satoshi-Variable.woff2") format("woff2"); font-weight: 300 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../public/fonts/JetBrainsMono-Regular.woff2") format("woff2"); font-weight: 400; }
+  :root {
+    --bg: #0e0b0a; --panel: #151110; --line: #2c2522;
+    --txt: #eae4df; --dim: #847a72; --faint: #5c534c;
+    --accent: #e0442e; /* safelight red */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--txt); font-family: "Satoshi", sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.04;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 49;
+    background:
+      radial-gradient(ellipse 60% 40% at 82% 0%, rgba(224,68,46,0.06), transparent 70%),
+      radial-gradient(ellipse 130% 100% at 50% 50%, transparent 50%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .leader {
+    display: flex; justify-content: space-between; padding: 20px 36px; align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .wordmark { display: flex; align-items: center; gap: 12px; font-weight: 600; letter-spacing: 0.2em; font-size: 14px; }
+  .lamp { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px rgba(224,68,46,0.9); }
+  .leader .mono { font-size: 11px; color: var(--faint); letter-spacing: 0.18em; }
+
+  .hero { display: grid; grid-template-columns: 0.92fr 1.4fr; gap: 48px; padding: 56px 64px 40px; align-items: center; }
+  h1 { font-size: 52px; line-height: 1.04; font-weight: 550; letter-spacing: -0.015em; }
+  h1 .red { color: var(--accent); }
+  .copy { margin-top: 22px; color: var(--dim); font-size: 15px; line-height: 1.7; max-width: 380px; }
+  .copy b { color: var(--txt); font-weight: 500; }
+  .actions { margin-top: 32px; display: flex; gap: 16px; align-items: center; }
+  .develop {
+    padding: 14px 28px; border-radius: 6px; background: var(--accent); color: #fff;
+    font-weight: 600; font-size: 14px; letter-spacing: 0.04em;
+    box-shadow: 0 6px 28px rgba(224,68,46,0.35);
+  }
+  .ghost { color: var(--dim); font-size: 13px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+
+  /* developer tray */
+  .tray { position: relative; }
+  .print {
+    position: relative; border-radius: 6px; overflow: hidden; aspect-ratio: 3/1.78;
+    box-shadow: 0 0 0 1px var(--line), 0 30px 80px rgba(0,0,0,0.85);
+  }
+  .print img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 58%; }
+  .print .after { clip-path: inset(0 0 0 47%); }
+  .divider { position: absolute; inset: 0 auto 0 47%; width: 2px; background: #eae4df; z-index: 3; }
+  .handle {
+    position: absolute; top: 50%; left: 47%; transform: translate(-50%,-50%); z-index: 4;
+    width: 38px; height: 52px; border-radius: 5px; background: #eae4df;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+  }
+  .handle::before, .handle::after {
+    content: ""; width: 5px; height: 38px;
+    background-image: radial-gradient(circle at 50% 5px, #0e0b0a 2.2px, transparent 2.6px);
+    background-size: 5px 9.5px;
+  }
+  .corner { position: absolute; z-index: 4; font-size: 10px; letter-spacing: 0.2em; color: rgba(234,228,223,0.85);
+    text-shadow: 0 1px 5px rgba(0,0,0,0.9); }
+  .corner.bl { left: 14px; bottom: 12px; } .corner.br { right: 14px; bottom: 12px; color: #fff; }
+  .corner.br i { color: var(--accent); font-style: normal; }
+  .tray .label { margin-top: 14px; display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); letter-spacing: 0.14em; }
+  .tray .label .t { color: var(--dim); }
+
+  /* drying line */
+  .line-row { padding: 26px 64px 56px; }
+  .line-row h2 { font-size: 11px; letter-spacing: 0.3em; color: var(--faint); font-weight: 500; margin-bottom: 18px; }
+  .wire { position: relative; border-top: 1px solid var(--line); padding-top: 22px; display: flex; gap: 22px; }
+  .clip { position: relative; width: 188px; }
+  .clip::before { content: ""; position: absolute; top: -22px; left: 50%; width: 1px; height: 16px; background: var(--faint); }
+  .clip img { width: 100%; aspect-ratio: 3/2; object-fit: cover; border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,0.6); }
+  .clip span { display: block; margin-top: 9px; font-size: 10px; letter-spacing: 0.18em; color: var(--dim); text-align: center; }
+</style>
+</head>
+<body>
+  <div class="leader">
+    <div class="wordmark"><span class="lamp"></span> FILMFEEL</div>
+    <div class="mono">DARKROOM OPEN — 00:02:31</div>
+  </div>
+
+  <section class="hero">
+    <div>
+      <h1>Develop any look<br>onto your own<br>footage<span class="red">.</span></h1>
+      <p class="copy">Show FilmFeel a still you love — a frame, a photo, a mood. It builds the
+        <b>.cube LUT</b> that prints that look onto your <b>Apple Log 2</b> footage. Developed
+        entirely under this roof: <b>no image ever leaves your browser.</b></p>
+      <div class="actions">
+        <div class="develop">Develop a look</div>
+        <div class="ghost">Watch the 30s demo</div>
+      </div>
+    </div>
+    <div class="tray">
+      <div class="print">
+        <img class="before" src="../../test-assets/log-frames/street-dusk_applelog2.png" alt="">
+        <img class="after" src="../../test-assets/photos/street-dusk.png" alt="">
+        <div class="divider"></div><div class="handle"></div>
+        <span class="corner bl mono">EXPOSED · LOG</span>
+        <span class="corner br mono"><i>●</i> DEVELOPED</span>
+      </div>
+      <div class="label mono"><span class="t">TRAY 01 — STREET DUSK</span><span>FilmFeel_StreetDusk_AppleLog2_33.cube</span></div>
+    </div>
+  </section>
+
+  <section class="line-row">
+    <h2>ON THE DRYING LINE</h2>
+    <div class="wire">
+      <div class="clip"><img src="../../test-assets/photos/projector.png" alt=""><span>HALATION</span></div>
+      <div class="clip"><img src="../../test-assets/photos/castle-fog.png" alt=""><span>MORNING FOG</span></div>
+      <div class="clip"><img src="../../test-assets/photos/portrait-warm.png" alt=""><span>TEAL WALL</span></div>
+      <div class="clip"><img src="../../test-assets/photos/sailboat-night.png" alt=""><span>NIGHT SAIL</span></div>
+      <div class="clip"><img src="../../test-assets/photos/confetti.png" alt=""><span>NEON RAIN</span></div>
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FilmFeel — B: The Console</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../../public/fonts/Satoshi-Variable.woff2") format("woff2"); font-weight: 300 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../public/fonts/JetBrainsMono-Regular.woff2") format("woff2"); font-weight: 400; }
+  :root {
+    --bg: #0c0d0d; --panel: #121313; --line: #262829;
+    --txt: #e4e6e5; --dim: #767a79; --faint: #515554;
+    --accent: #51d6a9; /* scope phosphor */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--txt); font-family: "Satoshi", sans-serif; height: 100%; }
+  .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; padding: 0 24px; border-bottom: 1px solid var(--line);
+  }
+  .wordmark { font-weight: 650; font-size: 15px; letter-spacing: 0.04em; }
+  .wordmark::after { content: " LAB"; color: var(--accent); font-size: 10px; letter-spacing: 0.3em; vertical-align: super; }
+  .top .status { display: flex; gap: 24px; font-size: 11px; color: var(--dim); letter-spacing: 0.08em; }
+  .top .status .on { color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: 296px 1fr; min-height: calc(100vh - 56px); }
+
+  aside { border-right: 1px solid var(--line); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .block h3 { font-size: 10px; letter-spacing: 0.24em; color: var(--faint); margin-bottom: 12px; font-weight: 500; }
+  .spec { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed #1d1f20; color: var(--dim); }
+  .spec b { color: var(--txt); font-weight: 400; }
+  .drop {
+    border: 1px dashed var(--line); border-radius: 8px; padding: 20px 16px; text-align: center;
+    color: var(--dim); font-size: 12px; line-height: 1.6;
+  }
+  .drop .key { color: var(--accent); }
+  .meter { height: 6px; border-radius: 3px; background: #1a1c1c; overflow: hidden; margin-top: 8px; }
+  .meter i { display: block; height: 100%; width: 64%; background: linear-gradient(90deg, #2e6b56, var(--accent)); }
+  .btn {
+    margin-top: auto; text-align: center; padding: 14px; border-radius: 8px;
+    background: var(--accent); color: #0c0d0d; font-weight: 600; font-size: 13px; letter-spacing: 0.06em;
+  }
+
+  .main { padding: 32px 40px; display: flex; flex-direction: column; }
+  h1 { font-size: 30px; font-weight: 550; letter-spacing: -0.01em; }
+  h1 em { font-style: normal; color: var(--dim); }
+  .sub { color: var(--dim); font-size: 13px; margin-top: 6px; }
+
+  .viewer { margin-top: 24px; position: relative; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 0 1px var(--line); aspect-ratio: 16/7.4; }
+  .viewer img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; }
+  .viewer .after { clip-path: inset(0 0 0 52%); }
+  .divider { position: absolute; top: 0; bottom: 0; left: 52%; width: 1px; background: var(--accent); z-index: 3; opacity: 0.9; }
+  .handle {
+    position: absolute; top: 50%; left: 52%; transform: translate(-50%,-50%); z-index: 4;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(81,214,169,0.18), 0 4px 14px rgba(0,0,0,0.6);
+  }
+  .hud {
+    position: absolute; z-index: 4; font-size: 10px; letter-spacing: 0.16em; color: var(--dim);
+    background: rgba(12,13,13,0.78); padding: 4px 8px; border-radius: 3px; border: 1px solid #1d1f20;
+  }
+  .hud.tl { top: 12px; left: 12px; } .hud.tr { top: 12px; right: 12px; color: var(--accent); border-color: rgba(81,214,169,0.3); }
+
+  .console { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .module { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--panel); }
+  .module h4 { font-size: 10px; letter-spacing: 0.22em; color: var(--faint); font-weight: 500; margin-bottom: 10px; }
+  .curve { height: 56px; position: relative; }
+  .curve svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); padding: 3px 0; }
+  .row b { color: var(--txt); font-weight: 400; }
+  .swatches { display: flex; gap: 6px; }
+  .sw { flex: 1; height: 36px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="wordmark">FilmFeel</div>
+    <div class="status mono">
+      <span>ENGINE <b class="on">READY</b></span>
+      <span>PIPELINE <b>CLIENT-SIDE</b></span>
+      <span>BUILD <b>0.1.0</b></span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <aside>
+      <div class="block">
+        <h3>REFERENCE</h3>
+        <div class="drop mono">DROP IMAGE<br><span class="key">⌘O</span> TO BROWSE</div>
+      </div>
+      <div class="block">
+        <h3>FOOTAGE FRAME</h3>
+        <div class="spec mono"><span>FORMAT</span><b>APPLE LOG 2</b></div>
+        <div class="spec mono"><span>SOURCE</span><b>IPHONE 17 PRO</b></div>
+        <div class="spec mono"><span>OUTPUT</span><b>REC.709</b></div>
+      </div>
+      <div class="block">
+        <h3>STRENGTH — 64%</h3>
+        <div class="meter"><i></i></div>
+      </div>
+      <div class="btn">GENERATE .CUBE</div>
+    </aside>
+
+    <main class="main">
+      <h1>Reference in. <em>LUT out.</em></h1>
+      <p class="sub">Color-matched to your camera's log format, computed entirely in this tab.</p>
+
+      <div class="viewer">
+        <img class="before" src="../../test-assets/log-frames/street-dusk_applelog2.png" alt="">
+        <img class="after" src="../../test-assets/photos/street-dusk.png" alt="">
+        <div class="divider"></div><div class="handle"></div>
+        <span class="hud tl mono">SRC · LOG FLAT</span>
+        <span class="hud tr mono">OUT · MATCHED ΔE 2.4</span>
+      </div>
+
+      <div class="console">
+        <div class="module">
+          <h4>TONAL CURVE</h4>
+          <div class="curve">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+              <path d="M0,40 C 25,38 35,20 50,14 S 80,4 100,2" fill="none" stroke="#51d6a9" stroke-width="1.4"/>
+              <path d="M0,40 L100,0" fill="none" stroke="#2a2a2f" stroke-width="1" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
+        </div>
+        <div class="module mono">
+          <h4>MATCH REPORT</h4>
+          <div class="row"><span>MEAN ΔE00</span><b>2.41</b></div>
+          <div class="row"><span>WB SHIFT</span><b>−210K</b></div>
+          <div class="row"><span>SAT RATIO</span><b>1.18×</b></div>
+        </div>
+        <div class="module">
+          <h4>PALETTE TARGETS</h4>
+          <div class="swatches">
+            <div class="sw" style="background:#1c2733"></div>
+            <div class="sw" style="background:#3d4f63"></div>
+            <div class="sw" style="background:#8a6a4e"></div>
+            <div class="sw" style="background:#d9a05c"></div>
+            <div class="sw" style="background:#f2e3c2"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

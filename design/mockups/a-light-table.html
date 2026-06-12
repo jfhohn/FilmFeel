@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FilmFeel — A: Light Table</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../../public/fonts/Satoshi-Variable.woff2") format("woff2"); font-weight: 300 900; }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../public/fonts/JetBrainsMono-Regular.woff2") format("woff2"); font-weight: 400; }
+  :root {
+    --bg: #0b0b0c; --panel: #121214; --line: #2a2a2f;
+    --txt: #e6e6e9; --dim: #77777f; --faint: #55555c;
+    --accent: #e2a85c; /* tungsten amber */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--txt); font-family: "Satoshi", sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  /* grain + vignette — the only ornament */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 49;
+    background: radial-gradient(ellipse 120% 90% at 50% 42%, transparent 55%, rgba(0,0,0,0.5) 100%);
+  }
+
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 24px 40px;
+  }
+  .wordmark { font-weight: 600; font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .wordmark em { color: var(--accent); font-style: normal; }
+  nav { display: flex; gap: 32px; font-size: 13px; color: var(--dim); }
+  nav span.cta { color: var(--txt); border-bottom: 1px solid var(--accent); padding-bottom: 2px; }
+
+  .stage { display: flex; flex-direction: column; align-items: center; padding: 32px 40px 0; }
+  h1 {
+    font-size: 44px; font-weight: 500; letter-spacing: -0.01em; text-align: center;
+    line-height: 1.15; max-width: 720px;
+  }
+  h1 .quiet { color: var(--dim); font-weight: 400; }
+  .sub { margin-top: 16px; color: var(--dim); font-size: 15px; }
+  .sub b { color: var(--txt); font-weight: 500; }
+
+  /* the projected frame */
+  .frame-wrap { margin-top: 40px; position: relative; }
+  .frame {
+    position: relative; width: 920px; aspect-ratio: 2.39 / 1; overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--line), 0 24px 80px rgba(0,0,0,0.8), 0 0 120px rgba(226,168,92,0.07);
+  }
+  .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 64%; }
+  .frame .after { clip-path: inset(0 0 0 56%); }
+  .divider {
+    position: absolute; top: 0; bottom: 0; left: 56%; width: 2px; background: rgba(245,245,246,0.9); z-index: 3;
+  }
+  .handle {
+    position: absolute; top: 50%; left: 56%; transform: translate(-50%, -50%); z-index: 4;
+    width: 40px; height: 56px; border-radius: 6px; background: #f5f5f6;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  }
+  /* film perforations on the handle */
+  .handle::before, .handle::after {
+    content: ""; width: 5px; height: 40px;
+    background-image: radial-gradient(circle at 50% 5px, #0b0b0c 2.2px, transparent 2.6px);
+    background-size: 5px 10px;
+  }
+  .tag {
+    position: absolute; bottom: 12px; z-index: 4; font-size: 11px; letter-spacing: 0.14em;
+    padding: 4px 10px; border-radius: 4px; background: rgba(11,11,12,0.72); color: var(--dim);
+  }
+  .tag.before { left: 16px; } .tag.after { right: 16px; color: var(--txt); }
+  .tag.after em { color: var(--accent); font-style: normal; }
+
+  .readout {
+    margin-top: 20px; display: flex; gap: 40px; font-size: 12px; color: var(--faint); letter-spacing: 0.04em;
+  }
+  .readout b { color: var(--dim); font-weight: 400; }
+  .readout .dot { color: var(--accent); }
+
+  /* contact sheet */
+  .sheet { margin: 56px auto 48px; width: 920px; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .sheet-head h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+  .sheet-head span { font-size: 12px; color: var(--faint); }
+  .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .thumb { position: relative; aspect-ratio: 3/2; border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb .name {
+    position: absolute; left: 10px; bottom: 8px; font-size: 11px; letter-spacing: 0.1em;
+    color: #f5f5f6; text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wordmark">Film<em>Feel</em></div>
+    <nav><span>How it works</span><span>Looks</span><span class="cta">Open the lab</span></nav>
+  </header>
+
+  <main class="stage">
+    <h1>Any look you can point at,<br><span class="quiet">graded onto your footage.</span></h1>
+    <p class="sub">Upload a reference image. Get a <b>.cube LUT</b> built for <b>Apple Log 2</b>. Nothing leaves your browser.</p>
+
+    <div class="frame-wrap">
+      <div class="frame">
+        <img class="before" src="../../test-assets/log-frames/street-dusk_applelog2.png" alt="">
+        <img class="after" src="../../test-assets/photos/street-dusk.png" alt="">
+        <div class="divider"></div>
+        <div class="handle"></div>
+        <span class="tag mono before">LOG · UNGRADED</span>
+        <span class="tag mono after"><em>●</em> FILMFEEL · KODAK DUSK</span>
+      </div>
+    </div>
+
+    <div class="readout mono">
+      <span><b>FORMAT</b> APPLE LOG 2 → REC.709</span>
+      <span><b>LUT</b> 33×33×33</span>
+      <span><b>MATCH</b> ΔE 2.41</span>
+      <span class="dot">● LOCAL — NO UPLOAD</span>
+    </div>
+
+    <section class="sheet">
+      <div class="sheet-head">
+        <h2>Sample looks</h2>
+        <span class="mono">04 / 12</span>
+      </div>
+      <div class="thumbs">
+        <div class="thumb"><img src="../../test-assets/photos/projector.png" alt=""><span class="name mono">HALATION</span></div>
+        <div class="thumb"><img src="../../test-assets/photos/milkyway.png" alt=""><span class="name mono">POLAR NIGHT</span></div>
+        <div class="thumb"><img src="../../test-assets/photos/cloud-sunset.png" alt=""><span class="name mono">GOLDEN HOUR</span></div>
+        <div class="thumb"><img src="../../test-assets/photos/portrait-lowkey.png" alt=""><span class="name mono">LOW KEY</span></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
