@@ -51,8 +51,11 @@ const config: Config = {
         "50": "#f5f5f6",
         "100": "#e6e6e9",
         "200": "#b9b9bf",
-        "400": "#77777f",
-        "500": "#55555c",
+        // 400/500 are text tints: raised to clear WCAG AA (4.5:1) on the ink-950
+        // body and the ink-900/850 elevated surfaces (PRD D3). 7.1:1 and 5.4:1
+        // worst-case while staying muted and below ink-200 in the hierarchy.
+        "400": "#a4a4ab",
+        "500": "#8d8d94",
         "700": "#2a2a2f",
         "800": "#1f1f23",
         "850": "#18181b",

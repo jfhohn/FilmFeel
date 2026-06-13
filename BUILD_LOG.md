@@ -237,3 +237,55 @@ drag the spring-damped before/after slider, set strength, and download
   pending a real-Safari run after deploy.
 - ✅ Screenshots of all states in `design/screenshots/app/`; critique notes
   carried into M4 (mobile header, gallery fold position).
+
+## M4 — Accessibility + design audit (2026-06-13)
+
+The iteration pass against the acceptance criteria, focused on the visual
+table (D1–D5). Wrote the design-audit test (`tests/e2e/design.spec.ts`),
+fixed the one outstanding accessibility failure, and re-verified the craft.
+
+**D3 — accessibility (the open item): fixed.** Lighthouse had flagged a
+color-contrast failure on the monospace text in the header. Root cause: the
+two "muted text" tints in the ink ramp were too dark to read on the near-black
+background. Measured against the actual WCAG AA floor (4.5:1 for normal text):
+
+- `ink-500` (#55555c) was **2.66:1** — used by the header status line, the
+  numeric readouts, the export filename, and the footer.
+- `ink-400` (#77777f) was **4.43:1** — just under the floor — used by the
+  hero subhead, format toggle, and various labels.
+
+The fix is a single-source-of-truth change, not per-element overrides: I
+raised those two ramp tokens to `ink-500 → #8d8d94` and `ink-400 → #a4a4ab`,
+chosen to clear 4.5:1 on every surface they appear on (the ink-950 body **and**
+the lighter ink-900/ink-850 panels — worst case 5.4:1 and 7.1:1) while staying
+muted and preserving the ramp hierarchy (ink-500 < ink-400 < ink-200). This
+keeps Craft principle #4 ("one scale, consistency is the aesthetic") intact and
+fixes every contrast failure at once.
+
+**D4 — slider performance: real fix for a flaky measurement.** The new perf
+test scripts a 2-second drag and asserts no frame exceeds two vsyncs (≈34ms).
+It failed only inside the full suite, never in isolation. Root cause was not
+the product — it was the *measurement*: Playwright runs the chromium, firefox
+and webkit projects in parallel, so the GPU-bound perf trace was being preempted
+by the other browsers rendering at the same time, injecting occasional long
+frames. Fix: a dedicated `design` Playwright project that `dependencies` on the
+three flow projects, so it runs **alone** after they finish, on hardware WebGL
+(ANGLE/D3D11, not software SwiftShader). The strict "no frame over two vsyncs"
+bar is unchanged — the trace is just uncontaminated now.
+
+**Verification:**
+- ✅ D3: **Lighthouse accessibility = 100/100, zero failed audits** (production
+  build via `vite preview`, headless Chrome). Up from the prior failing run.
+- ✅ D2: computed-style audit passes — only design-token spacing/radii/shadows
+  and the two approved typefaces appear anywhere in the live DOM.
+- ✅ D4: isolated drag trace is **avg 16.7ms / worst 16.8ms over ~400 frames** —
+  a clean 60fps with zero jank.
+- ✅ D1 / D5: re-screenshot every state (`design/screenshots/app/`) and a vision
+  critique against the Design & Craft section — no violations. The brighter
+  muted text improves the readouts without making the chrome loud; image stays
+  the largest element, chrome stays monochrome + one accent.
+- ✅ Full suites still green: 32/32 unit (criteria 1–5), 17/17 Playwright e2e,
+  `npm run build` clean.
+- ⚠️ Known intermittent: the WebKit keyboard-strength e2e test occasionally
+  needs its one retry (an arrow-key press not registering within the 400ms
+  window) — passes on retry, engine-timing only, not a product defect.
