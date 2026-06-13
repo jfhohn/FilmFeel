@@ -218,7 +218,7 @@ export default function App() {
         </motion.div>
 
         <Viewer
-          footage={footage?.bitmap ?? null}
+          footage={footage}
           luts={luts}
           strength={strength}
           revealKey={revealKey}

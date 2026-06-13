@@ -4,25 +4,32 @@
  * Also: the downloaded .cube must parse with the strict validator, and the
  * GPU preview must match the CPU engine (M3 cross-check).
  */
-import { test, expect } from "@playwright/test";
-import { join } from "node:path";
+import { test, expect, type Page } from "@playwright/test";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 
-const PHOTO = join(__dirname, "..", "..", "test-assets", "photos", "moraine-lake.png");
-const LOG_FRAME = join(__dirname, "..", "..", "test-assets", "log-frames", "forest_applelog2.png");
+const here = dirname(fileURLToPath(import.meta.url));
+const PHOTO = join(here, "..", "..", "test-assets", "photos", "moraine-lake.png");
+const LOG_FRAME = join(here, "..", "..", "test-assets", "log-frames", "forest_applelog2.png");
 
-declare global {
-  interface Window {
-    __filmfeel?: {
-      phase: string;
-      gpuCheck: (() => Promise<{ maxErr: number; meanErr: number; samples: number }>) | null;
-      cubeText: (() => string) | null;
-    };
-  }
+interface FilmFeelHook {
+  phase: string;
+  gpuCheck: (() => Promise<{ maxErr: number; meanErr: number; samples: number }>) | null;
+}
+
+/** Wait until the app reports the given phase via its test hook. */
+function waitForPhase(page: Page, phase: string, timeout = 45000) {
+  return page.waitForFunction(
+    (p) => (window as unknown as { __filmfeel?: FilmFeelHook }).__filmfeel?.phase === p,
+    phase,
+    { timeout },
+  );
 }
 
 test("landing demo generates on load (empty state teaches)", async ({ page }) => {
   await page.goto("/");
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
   await expect(page.getByTestId("viewer-canvas")).toBeVisible();
   await expect(page.getByTestId("viewer-handle")).toBeVisible();
   await expect(page.getByTestId("gen-time")).toBeVisible();
@@ -30,16 +37,15 @@ test("landing demo generates on load (empty state teaches)", async ({ page }) =>
 
 test("full flow: upload reference + footage, generate, download a valid .cube", async ({ page }) => {
   await page.goto("/");
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
 
   // upload own footage frame (Apple Log 2)
   await page.getByTestId("drop-footage-input").setInputFiles(LOG_FRAME);
-  await page.waitForFunction(() => window.__filmfeel?.phase === "generating", undefined, { timeout: 20000 });
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
 
   // upload reference look
   await page.getByTestId("drop-reference-input").setInputFiles(PHOTO);
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
 
   // adjust strength, name the look
   await page.getByTestId("strength").fill("70");
@@ -52,7 +58,6 @@ test("full flow: upload reference + footage, generate, download a valid .cube", 
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("FilmFeel_GlacierTeal_AppleLog2_33.cube");
   const path = await download.path();
-  const { readFileSync } = await import("node:fs");
   const text = readFileSync(path!, "utf8");
   const { parseCube } = await import("../../src/engine/lut.ts");
   const parsed = parseCube(text);
@@ -66,23 +71,25 @@ test("full flow: upload reference + footage, generate, download a valid .cube", 
 
 test("sample look gallery grades the demo frame", async ({ page }) => {
   await page.goto("/");
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
   await page.getByTestId("look-neon-rain").click();
-  await page.waitForFunction(() => window.__filmfeel?.phase === "generating", undefined, { timeout: 20000 });
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "generating", 20000);
+  await waitForPhase(page, "graded");
   await expect(page.getByTestId("filename")).toContainText("NeonRain");
 });
 
 test("GPU preview matches the CPU engine (cross-check)", async ({ page, browserName }) => {
   await page.goto("/");
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
   await page.getByTestId("strength").fill("65");
   const result = await page.evaluate(async () => {
-    const check = window.__filmfeel?.gpuCheck;
-    return check ? await check() : null;
+    const hook = (window as unknown as { __filmfeel?: FilmFeelHook }).__filmfeel;
+    return hook?.gpuCheck ? await hook.gpuCheck() : null;
   });
   expect(result).not.toBeNull();
-  console.log(`[${browserName}] gpuCheck maxErr=${result!.maxErr.toFixed(5)} meanErr=${result!.meanErr.toFixed(5)} n=${result!.samples}`);
+  console.log(
+    `[${browserName}] gpuCheck maxErr=${result!.maxErr.toFixed(5)} meanErr=${result!.meanErr.toFixed(5)} n=${result!.samples}`,
+  );
   // half-float LUT texture + trilinear: a few 8-bit steps of headroom
   expect(result!.maxErr).toBeLessThanOrEqual(3 / 255);
   expect(result!.meanErr).toBeLessThanOrEqual(1 / 255);
@@ -90,7 +97,7 @@ test("GPU preview matches the CPU engine (cross-check)", async ({ page, browserN
 
 test("keyboard: slider divider and strength are operable", async ({ page }) => {
   await page.goto("/");
-  await page.waitForFunction(() => window.__filmfeel?.phase === "graded", undefined, { timeout: 45000 });
+  await waitForPhase(page, "graded");
   const handle = page.getByTestId("viewer-handle");
   await handle.focus();
   const before = await handle.getAttribute("aria-valuenow");

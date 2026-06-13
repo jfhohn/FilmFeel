@@ -34,10 +34,13 @@ export async function gpuCheck(base: Lut3D, look: Lut3D, strength: number): Prom
     src[i * 4 + 3] = 255;
   }
   const imageData = new ImageData(src, N, N);
-  const bmp = await createImageBitmap(imageData);
+  const srcCanvas = document.createElement("canvas");
+  srcCanvas.width = N;
+  srcCanvas.height = N;
+  srcCanvas.getContext("2d")!.putImageData(imageData, 0, 0);
 
   const r = new LutRenderer(canvas, 1); // 1:1 pixels so GL samples exact texel centers
-  r.setFootage(bmp, N, N);
+  r.setFootage(srcCanvas, N, N);
   r.setLuts(base, look);
   r.render({ split: 0, strength, reveal: 1, time: 0 });
 
@@ -76,7 +79,6 @@ export async function gpuCheck(base: Lut3D, look: Lut3D, strength: number): Prom
     }
   }
   r.dispose();
-  bmp.close();
   canvas.remove();
   return { maxErr, meanErr: sum / count, samples: count };
 }

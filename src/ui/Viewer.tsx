@@ -8,7 +8,7 @@ import { LutRenderer } from "../gl/LutRenderer.ts";
 import type { Lut3D } from "../engine/lut.ts";
 
 export interface ViewerProps {
-  footage: ImageBitmap | null;
+  footage: { texture: TexImageSource; width: number; height: number } | null;
   luts: { base: Lut3D; look: Lut3D } | null;
   strength: number;
   /** increments to retrigger the developing reveal */
@@ -80,7 +80,7 @@ export default function Viewer({ footage, luts, strength, revealKey, beforeLabel
   useEffect(() => {
     const r = rendererRef.current;
     if (!r || !footage || !luts) return;
-    r.setFootage(footage, footage.width, footage.height);
+    r.setFootage(footage.texture, footage.width, footage.height);
     r.setLuts(luts.base, luts.look);
     setReady(true);
     kick();

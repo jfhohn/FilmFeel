@@ -22,3 +22,8 @@
 - Test suite covering acceptance criteria 1–5 (32 tests), with Apple's
   official LUTs as oracles and banding bars calibrated against Apple's own
   Log2→Rec709 LUT.
+- App: landing with live sample demo, reference/footage upload, format
+  select, Web Worker generation, WebGL 3D-texture preview with spring-damped
+  before/after slider, shader film-developing reveal, strength blending,
+  .cube download. Verified in Chromium, Firefox, WebKit (15 e2e tests) with
+  a GPU-vs-CPU cross-check.

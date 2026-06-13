@@ -150,7 +150,9 @@ reference's with smooth monotone curves, and that transform is sampled at
 
 **Verification (all via `npx vitest run`, 32/32 green):**
 - ✅ C1: 33³ export parses + validates; same validator cleanly parses both of
-  Apple's official LUTs. *(pass via proxy — pending Jacob's Resolve import)*
+  Apple's official LUTs. **Upgraded: pass — human verified.** Jacob imported a
+  generated .cube into DaVinci Resolve on Windows (2026-06-12): listed,
+  applied, rendered correctly, toggled cleanly.
 - ✅ C2: identity round-trip max deviation ≤ 0.01 at every node, 4 photos;
   log self-match reproduces the original at mean ΔE00 < 1.
 - ✅ C3: mean ΔE00 4.41 ≤ 5 on the 10-pair set.
@@ -189,3 +191,49 @@ cinema-scope frame with the perforated handle is the screenshot people will
 share. The tungsten amber accent carries photographic warmth without
 contaminating color judgment the way Safelight's red does, and unlike The
 Console it leads with the result rather than the controls.
+
+## M3 — The app (2026-06-12 → 13)
+
+The full product now runs: landing opens on a live demo (an Apple Log 2
+sample frame being graded in front of you — never a blank dropzone), upload
+reference + footage, pick format, watch the ~2.5 s film-developing reveal,
+drag the spring-damped before/after slider, set strength, and download
+`FilmFeel_LookName_AppleLog2_33.cube`.
+
+**Architecture decisions:**
+- **Generation runs in a Web Worker** so the developing animation stays at
+  60fps while the engine computes (~0.4 s for the demo images).
+- **Two LUTs per generation** — base conversion (strength 0) and full look
+  (strength 1). The GPU blends them per pixel, so the strength slider is a
+  single uniform update (60fps), and export at any strength is an instant
+  per-node blend of the two — mathematically identical to the engine's
+  definition.
+- **The LUT is a real 3D texture** applied in a fragment shader with
+  hardware trilinear filtering — the same interpolation Resolve uses.
+- The developing reveal is a shader (exposure rises, grain settles, color
+  blooms), honoring `prefers-reduced-motion` by cutting straight to done.
+
+**Bugs found by looking (the screenshot-critique loop earning its keep):**
+- The first screenshots showed the portrait demo frame *stretched* into the
+  2.39:1 cinema frame — the canvas was sized to the footage, CSS to the
+  frame. Fixed with object-fit-cover math in the shader; demo switched to a
+  landscape alpine frame that suits the scope ratio.
+- WebKit (Safari's engine) sat at a blank "boot" forever: **Playwright's
+  WebKit has no `OffscreenCanvas`.** All 5 WebKit tests failed; Chromium and
+  Firefox passed. Fix was a simplification — plain detached `<canvas>`
+  elements work as WebGL texture sources in every browser, no
+  `ImageBitmap`/`OffscreenCanvas` needed at all.
+
+**Verification:**
+- ✅ 32/32 unit tests (criteria 1–5) still green.
+- ✅ 15/15 Playwright tests across Chromium, Firefox, WebKit: demo
+  generates on load; full upload→download flow produces a .cube that the
+  strict validator accepts; gallery look applies; keyboard operation of the
+  comparison slider works.
+- ✅ **GPU-vs-CPU cross-check**: the shader output matches the CPU engine
+  at max error 0.0022 (≈ half an 8-bit step) on all three engines.
+- ✅ Criterion 1 upgraded to **pass — human verified** (Jacob, Resolve on
+  Windows, 2026-06-12). Criterion 6 remains pass-via-proxy (WebKit engine)
+  pending a real-Safari run after deploy.
+- ✅ Screenshots of all states in `design/screenshots/app/`; critique notes
+  carried into M4 (mobile header, gallery fold position).
