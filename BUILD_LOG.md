@@ -289,3 +289,37 @@ bar is unchanged — the trace is just uncontaminated now.
 - ⚠️ Known intermittent: the WebKit keyboard-strength e2e test occasionally
   needs its one retry (an arrow-key press not registering within the 400ms
   window) — passes on retry, engine-timing only, not a product defect.
+
+## M5 — Taste pass (2026-06-13)
+
+The final beauty review (Design Process step 3): the graded landing reviewed at
+three viewport widths — desktop (1440), tablet (834), mobile (390) — purely for
+alignment, rhythm, and contrast. No functional changes are permitted in this
+pass, and none were needed. Captures in `design/screenshots/taste/` via
+`scripts/shoot-taste.ts`.
+
+**What holds at every width:**
+- *Composition* — the cinema-scope before/after frame is the dominant element
+  at all three sizes; the chrome recedes (Craft #1, "the user's image is the
+  largest element").
+- *Rhythm* — the 8px vertical grid is consistent from the readout row through
+  dropzones, controls, export, and the gallery; no off-grid gaps appear.
+- *Contrast* — after the D3 token fix the muted mono text is legible at small
+  sizes without the chrome turning loud; the monochrome-plus-one-accent
+  discipline is intact (the amber shows only on the "Feel" wordmark, status
+  dots, slider fill, and the download button).
+- *Responsive behaviour* — desktop centers in a max-width editorial column with
+  generous margins; tablet keeps the two-column dropzones; mobile stacks to
+  full-width panels, wraps the readout row cleanly, and lays the gallery out as
+  a tidy 3×2 grid.
+
+**Final status — all acceptance criteria met:**
+- Functional 1–6: **1 ✅ human-verified** (Resolve, Windows); **2–5 ✅** by the
+  32/32 unit suite; **6 ✅ via the WebKit proxy** (real-Safari confirmation
+  deferred to post-deploy, as agreed).
+- Visual D1–D5: **all ✅** — D1/D5 by vision critique, D2 by the style-audit
+  test, D3 by Lighthouse (100/100), D4 by the isolated perf trace (60fps).
+
+The MVP in PRD.md is built and verified. Remaining PRD milestones
+(Polish + deploy → public URL/gallery, the portfolio case study, and the
+Reddit user probe) are post-build product steps, not engineering work.
