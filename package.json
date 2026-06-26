@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "assets": "node --experimental-strip-types scripts/generate-test-assets.ts"
+    "assets": "node --experimental-strip-types scripts/generate-test-assets.ts",
+    "assets:bundle": "node --experimental-strip-types scripts/generate-test-assets.ts bundle"
   },
   "dependencies": {
     "framer-motion": "^11.18.2",

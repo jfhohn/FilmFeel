@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import Viewer from "./ui/Viewer.tsx";
 import Dropzone from "./ui/Dropzone.tsx";
 import StrengthSlider from "./ui/StrengthSlider.tsx";
-import Gallery, { type SampleLook } from "./ui/Gallery.tsx";
+import Gallery, { SAMPLE_FOOTAGE, type SampleLook, type SampleFootage } from "./ui/Gallery.tsx";
+import ThumbGrid from "./ui/ThumbGrid.tsx";
 import { loadImage, type LoadedImage } from "./lib/images.ts";
 import { downloadCube } from "./lib/exportCube.ts";
 import { exportFilename, type Lut3D } from "./engine/lut.ts";
@@ -35,6 +36,7 @@ export default function App() {
   const [revealKey, setRevealKey] = useState(0);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [activeSample, setActiveSample] = useState<string | null>(null);
+  const [activeFootageSample, setActiveFootageSample] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
@@ -125,12 +127,29 @@ export default function App() {
         const img = await loadImage(file);
         setFootage(img);
         setIsDemoFootage(false);
+        setActiveFootageSample(null);
         if (reference) generate(reference, img, format);
       } catch {
         setError("Couldn't read that image — try a JPEG or PNG.");
       }
     },
     [reference, format, generate],
+  );
+
+  const onPickFootage = useCallback(
+    async (s: SampleFootage) => {
+      try {
+        const img = await loadImage(s.url, s.title);
+        setFootage(img);
+        setIsDemoFootage(false);
+        setActiveFootageSample(s.name);
+        setFormat("applelog2"); // every sample frame is Apple Log 2
+        if (reference) generate(reference, img, "applelog2");
+      } catch {
+        setError("Couldn't load that frame.");
+      }
+    },
+    [reference, generate],
   );
 
   const onFormatChange = useCallback(
@@ -320,6 +339,19 @@ export default function App() {
             {error}
           </p>
         )}
+
+        {/* sample footage picker — swap the frame, then try looks below */}
+        <div className="w-full py-2">
+          <ThumbGrid
+            ariaLabel="Sample footage"
+            heading="Try sample footage"
+            hint="CLICK TO LOAD AS YOUR FOOTAGE"
+            items={SAMPLE_FOOTAGE}
+            onPick={onPickFootage}
+            activeName={activeFootageSample}
+            testIdPrefix="frame"
+          />
+        </div>
 
         <div className="w-full py-4">
           <Gallery onPick={onPickSample} activeName={activeSample} />
