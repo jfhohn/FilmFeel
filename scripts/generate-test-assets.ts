@@ -19,6 +19,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "test-assets", "generated");
 const photosDir = join(root, "test-assets", "photos");
 const logDir = join(root, "test-assets", "log-frames");
+const samplesDir = join(root, "public", "samples");
 
 /** Classic ColorChecker 24 patch sRGB values (row-major, 4 rows × 6 cols). */
 export const COLOR_CHECKER_SRGB: ReadonlyArray<readonly [number, number, number]> = [
@@ -110,6 +111,43 @@ function synthesizeLogFrame(src: RawImage): RawImage {
   return { width: rgb.width, height: rgb.height, channels: 3, data: out };
 }
 
+/**
+ * Box-average downscale to a max edge in px (never upscales). Returns RGB.
+ * Box averaging gives clean, alias-free thumbnails — exactly what the gallery
+ * grid and the WebGL preview need (analysis caps at 1024px anyway).
+ */
+function resizeMaxEdge(src: RawImage, maxEdge: number): RawImage {
+  const rgb = toRgb(src);
+  const scale = Math.min(1, maxEdge / Math.max(rgb.width, rgb.height));
+  if (scale >= 1) return rgb;
+  const dw = Math.max(1, Math.round(rgb.width * scale));
+  const dh = Math.max(1, Math.round(rgb.height * scale));
+  const out = new Uint8Array(dw * dh * 3);
+  for (let dy = 0; dy < dh; dy++) {
+    const sy0 = Math.floor((dy * rgb.height) / dh);
+    const sy1 = Math.max(sy0 + 1, Math.floor(((dy + 1) * rgb.height) / dh));
+    for (let dx = 0; dx < dw; dx++) {
+      const sx0 = Math.floor((dx * rgb.width) / dw);
+      const sx1 = Math.max(sx0 + 1, Math.floor(((dx + 1) * rgb.width) / dw));
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let sy = sy0; sy < sy1; sy++) {
+        for (let sx = sx0; sx < sx1; sx++) {
+          const i = (sy * rgb.width + sx) * 3;
+          r += rgb.data[i];
+          g += rgb.data[i + 1];
+          b += rgb.data[i + 2];
+          n++;
+        }
+      }
+      const o = (dy * dw + dx) * 3;
+      out[o] = Math.round(r / n);
+      out[o + 1] = Math.round(g / n);
+      out[o + 2] = Math.round(b / n);
+    }
+  }
+  return { width: dw, height: dh, channels: 3, data: out };
+}
+
 const what = process.argv[2] ?? "all";
 mkdirSync(outDir, { recursive: true });
 
@@ -132,4 +170,18 @@ if (what === "synthlog" || what === "all") {
     n++;
   }
   console.log(`synthesized ${n} Apple Log 2 frames`);
+}
+if (what === "bundle" || what === "all") {
+  mkdirSync(samplesDir, { recursive: true });
+  let n = 0;
+  // Graded photos (reference looks) + their Apple Log 2 frames (sample footage),
+  // all downsized to ≤960px so the bundle stays lean (~1 MB each vs up to 5 MB raw).
+  for (const dir of [photosDir, logDir]) {
+    for (const f of readdirSync(dir).filter((f) => f.endsWith(".png"))) {
+      const img = decodePng(readFileSync(join(dir, f)));
+      writeFileSync(join(samplesDir, f), encodePng(resizeMaxEdge(img, 960)));
+      n++;
+    }
+  }
+  console.log(`bundled ${n} sample images to public/samples (≤960px)`);
 }
