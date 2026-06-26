@@ -278,19 +278,6 @@ export default function App() {
           />
         </section>
 
-        {/* sample footage picker — sits under the footage dropzone it feeds */}
-        <div className="w-full py-2">
-          <ThumbGrid
-            ariaLabel="Sample footage"
-            heading="Or try sample footage"
-            hint="CLICK TO LOAD AS YOUR FOOTAGE"
-            items={SAMPLE_FOOTAGE}
-            onPick={onPickFootage}
-            activeName={activeFootageSample}
-            testIdPrefix="frame"
-          />
-        </div>
-
         <section className="flex w-full flex-wrap items-center gap-3 py-2" aria-label="Settings">
           <div className="flex items-center gap-1 rounded-md bg-ink-900 p-px" role="radiogroup" aria-label="Footage format">
             {(
@@ -352,6 +339,19 @@ export default function App() {
             {error}
           </p>
         )}
+
+        {/* sample footage picker — swap the frame, then try looks below */}
+        <div className="w-full py-2">
+          <ThumbGrid
+            ariaLabel="Sample footage"
+            heading="Try sample footage"
+            hint="CLICK TO LOAD AS YOUR FOOTAGE"
+            items={SAMPLE_FOOTAGE}
+            onPick={onPickFootage}
+            activeName={activeFootageSample}
+            testIdPrefix="frame"
+          />
+        </div>
 
         <div className="w-full py-4">
           <Gallery onPick={onPickSample} activeName={activeSample} />
